@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type * as CM from 'codemirror';
+import type CM from '../codemirror';
 import {
   FragmentDefinitionNode,
   GraphQLSchema,
@@ -56,7 +56,7 @@ export class QueryEditor extends React.Component<QueryEditorProps, {}>
   cachedValue: string | undefined;
   editor: (CM.Editor & { options: any; showHint: any }) | null = null;
   ignoreChangeEvent: boolean = false;
-
+  _CodeMirror: any;
   _node: HTMLElement | null = null;
 
   constructor(props: QueryEditorProps) {
@@ -69,28 +69,15 @@ export class QueryEditor extends React.Component<QueryEditorProps, {}>
   }
 
   componentDidMount() {
-    // Lazily require to ensure requiring GraphiQL outside of a Browser context
+    // Lazily import to ensure requiring GraphiQL outside of a Browser context
     // does not produce an error.
-    const CodeMirror = require('codemirror');
-    require('codemirror/addon/hint/show-hint');
-    require('codemirror/addon/comment/comment');
-    require('codemirror/addon/edit/matchbrackets');
-    require('codemirror/addon/edit/closebrackets');
-    require('codemirror/addon/fold/foldgutter');
-    require('codemirror/addon/fold/brace-fold');
-    require('codemirror/addon/search/search');
-    require('codemirror/addon/search/searchcursor');
-    require('codemirror/addon/search/jump-to-line');
-    require('codemirror/addon/dialog/dialog');
-    require('codemirror/addon/lint/lint');
-    require('codemirror/keymap/sublime');
-    require('codemirror-graphql/hint');
-    require('codemirror-graphql/lint');
-    require('codemirror-graphql/info');
-    require('codemirror-graphql/jump');
-    require('codemirror-graphql/mode');
+    import('../codemirror').then(({ default: cm }) => this.createEditor(cm));
+  }
 
-    const editor: CM.Editor = (this.editor = CodeMirror(this._node, {
+  createEditor(cm: any) {
+    this._CodeMirror = cm;
+
+    const editor: CM.Editor = (this.editor = this._CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
@@ -209,8 +196,6 @@ export class QueryEditor extends React.Component<QueryEditorProps, {}>
   }
 
   componentDidUpdate(prevProps: QueryEditorProps) {
-    const CodeMirror = require('codemirror');
-
     // Ensure the changes caused by this update are not interpretted as
     // user-input changes which could otherwise result in an infinite
     // event loop.
@@ -220,7 +205,7 @@ export class QueryEditor extends React.Component<QueryEditorProps, {}>
       this.editor.options.hintOptions.schema = this.props.schema;
       this.editor.options.info.schema = this.props.schema;
       this.editor.options.jump.schema = this.props.schema;
-      CodeMirror.signal(this.editor, 'change', this.editor);
+      this._CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (
       this.props.value !== prevProps.value &&

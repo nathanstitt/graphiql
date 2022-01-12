@@ -49,7 +49,7 @@ type VariableEditorProps = {
  *
  */
 export class VariableEditor extends React.Component<VariableEditorProps> {
-  CodeMirror: any;
+  _CodeMirror: any;
   editor: (CM.Editor & { options: any; showHint: any }) | null = null;
   cachedValue: string;
   private _node: HTMLElement | null = null;
@@ -64,24 +64,17 @@ export class VariableEditor extends React.Component<VariableEditorProps> {
   }
 
   componentDidMount() {
-    // Lazily require to ensure requiring GraphiQL outside of a Browser context
+    // Lazily import to ensure requiring GraphiQL outside of a Browser context
     // does not produce an error.
-    this.CodeMirror = require('codemirror');
-    require('codemirror/addon/hint/show-hint');
-    require('codemirror/addon/edit/matchbrackets');
-    require('codemirror/addon/edit/closebrackets');
-    require('codemirror/addon/fold/brace-fold');
-    require('codemirror/addon/fold/foldgutter');
-    require('codemirror/addon/lint/lint');
-    require('codemirror/addon/search/searchcursor');
-    require('codemirror/addon/search/jump-to-line');
-    require('codemirror/addon/dialog/dialog');
-    require('codemirror/keymap/sublime');
-    require('codemirror-graphql/variables/hint');
-    require('codemirror-graphql/variables/lint');
-    require('codemirror-graphql/variables/mode');
+    import('../codemirror').then(({ default: cm }) =>
+      this.initializeCodeMirror(cm),
+    );
+  }
 
-    const editor = (this.editor = this.CodeMirror(this._node, {
+  async initializeCodeMirror(cm: any) {
+    this._CodeMirror = cm;
+
+    const editor = (this.editor = this._CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
@@ -158,7 +151,6 @@ export class VariableEditor extends React.Component<VariableEditorProps> {
   }
 
   componentDidUpdate(prevProps: VariableEditorProps) {
-    this.CodeMirror = require('codemirror');
     if (!this.editor) {
       return;
     }
@@ -170,7 +162,7 @@ export class VariableEditor extends React.Component<VariableEditorProps> {
     if (this.props.variableToType !== prevProps.variableToType) {
       this.editor.options.lint.variableToType = this.props.variableToType;
       this.editor.options.hintOptions.variableToType = this.props.variableToType;
-      this.CodeMirror.signal(this.editor, 'change', this.editor);
+      this._CodeMirror.signal(this.editor, 'change', this.editor);
     }
     if (
       this.props.value !== prevProps.value &&

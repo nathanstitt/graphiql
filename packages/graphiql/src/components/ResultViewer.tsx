@@ -34,53 +34,53 @@ export class ResultViewer extends React.Component<ResultViewerProps, {}>
   implements SizerComponent {
   viewer: (CM.Editor & { options: any }) | null = null;
   _node: HTMLElement | null = null;
+  _CodeMirror: any;
 
   componentDidMount() {
-    // Lazily require to ensure requiring GraphiQL outside of a Browser context
+    // Lazily import to ensure requiring GraphiQL outside of a Browser context
     // does not produce an error.
-    const CodeMirror = require('codemirror');
-    require('codemirror/addon/fold/foldgutter');
-    require('codemirror/addon/fold/brace-fold');
-    require('codemirror/addon/dialog/dialog');
-    require('codemirror/addon/search/search');
-    require('codemirror/addon/search/searchcursor');
-    require('codemirror/addon/search/jump-to-line');
-    require('codemirror/keymap/sublime');
-    require('codemirror-graphql/results/mode');
+    import('../codemirror').then(({ default: cm }) =>
+      this.initializeCodeMirror(cm),
+    );
+  }
+
+  async initializeCodeMirror(cm: any) {
+    this._CodeMirror = cm;
     const Tooltip = this.props.ResultsTooltip;
     const ImagePreview = this.props.ImagePreview;
 
     if (Tooltip || ImagePreview) {
-      require('codemirror-graphql/utils/info-addon');
-      const tooltipDiv = document.createElement('div');
-      CodeMirror.registerHelper(
-        'info',
-        'graphql-results',
-        (token: any, _options: any, _cm: CodeMirror.Editor, pos: any) => {
-          const infoElements: JSX.Element[] = [];
-          if (Tooltip) {
-            infoElements.push(<Tooltip pos={pos} />);
-          }
-
-          if (
-            ImagePreview &&
-            typeof ImagePreview.shouldRender === 'function' &&
-            ImagePreview.shouldRender(token)
-          ) {
-            infoElements.push(<ImagePreview token={token} />);
-          }
-
-          if (!infoElements.length) {
-            ReactDOM.unmountComponentAtNode(tooltipDiv);
-            return null;
-          }
-          ReactDOM.render(<div>{infoElements}</div>, tooltipDiv);
-          return tooltipDiv;
-        },
-      );
+      await import('codemirror-graphql/utils/info-addon');
     }
 
-    this.viewer = CodeMirror(this._node, {
+    const tooltipDiv = document.createElement('div');
+    this._CodeMirror.registerHelper(
+      'info',
+      'graphql-results',
+      (token: any, _options: any, _cm: CodeMirror.Editor, pos: any) => {
+        const infoElements: JSX.Element[] = [];
+        if (Tooltip) {
+          infoElements.push(<Tooltip pos={pos} />);
+        }
+
+        if (
+          ImagePreview &&
+          typeof ImagePreview.shouldRender === 'function' &&
+          ImagePreview.shouldRender(token)
+        ) {
+          infoElements.push(<ImagePreview token={token} />);
+        }
+
+        if (!infoElements.length) {
+          ReactDOM.unmountComponentAtNode(tooltipDiv);
+          return null;
+        }
+        ReactDOM.render(<div>{infoElements}</div>, tooltipDiv);
+        return tooltipDiv;
+      },
+    );
+
+    this.viewer = this._CodeMirror(this._node, {
       lineWrapping: true,
       value: this.props.value || '',
       readOnly: true,
